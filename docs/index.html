@@ -1,0 +1,384 @@
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Flight Paths using Edge Bundling</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+          integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+          crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+          integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+          crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+          integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+          crossorigin="anonymous"></script>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://unpkg.com/topojson@3"></script>
+  <script src="https://unpkg.com/vue@next"></script>
+  <script src="https://unpkg.com/d3-delaunay@4"></script>
+  <script src="https://unpkg.com/d3-geo-voronoi@1"></script>
+  <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap-switch-button@1.1.0/css/bootstrap-switch-button.min.css"
+        rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.0.0/dist/echarts.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap-switch-button@1.1.0/dist/bootstrap-switch-button.min.js"></script>
+  <link href="style.css" rel="stylesheet">
+</head>
+
+<body data-new-gr-c-s-loaded="true">
+<div class="container-fluid p-5">
+  <h1><b><i>The Sky of US</i></b></h1>
+  <h6><i>A Historical flight viewer</i></h6>
+  <h5>Welcome to the sky of the US. This interface exploration is based on the historical data of flights
+    from 2009 to 2018, in which you will be able to locate the most/least delayed airport, your interested airlines,
+    or the real-time airplane location on Nov 22, a day before the Thanksgiving break in each year. You will also see
+    how long it takes for taxi out in the top 50 airports and some other information for your selected time. Enjoy
+    the trip today!</h5>
+  <div class="row">
+    <div class="col-8 pl-5">
+      <div class="l_col h-80 d-inline-block">
+        <!-- must be 960x600 to match topojson us atlas files -->
+        <svg width="960px" height="600px"><!-- width="960" height="600"-->
+          <!-- must be in this order for drawing -->
+          <g id="basemap"></g>
+          <g id="flights"></g>
+          <g id="airports"></g>
+          <g id="voronoi"></g>
+          <text id="tooltip" style="display: none;"></text>
+        </svg>
+      </div>
+      <div class="l_col w-100 h-20 d-inline-block">
+        <div id="app1">
+          <div class="d-flex justify-content-center my-4">
+            <h5 class='p-3'>Year: </h5>
+            <input type="range" v-model="currentYear" class="custom-range" min="2009" max="2018">
+            <span class="font-weight-bold text-primary ml-2 valueSpan">{{currentYear}}</span>
+            <h5 class='p-3 time'>Time: </h5>
+            <input type="range" v-model="currentTime" class="custom-range" min="0" max="47">
+            <span class="font-weight-bold text-primary ml-2 valueSpan">{{currentTimeShow}}</span>
+          </div>
+          <div>
+            <!--            <canvas ref="canvas"></canvas>-->
+            <div id="chart" style="width: 100%;height:600px;"></div>
+            <div>
+              <span class='p-3'>start time: {{chartStartTimeShow}}</span>
+              <input type="range" v-model="chartStartTime" class="custom-range" min="0" max="47">
+              <span class='p-3'>end time: {{chartEndTimeShow}}</span>
+              <input type="range" v-model="chartEndTime" class="custom-range" min="0" max="47">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="app2" class="col-3 text-center pr-5">
+      <div class="r_col h-20 p-2" id='display'>
+        <form action="" method="get">
+          <h5>Choose display layers:</h5>
+          <label class='p-1'><input class='p-1' name="D" type="checkbox" v-model="isLineShow" value=""/>Line </label>
+          <label class='p-1'><input class='p-1' name="D" type="checkbox" v-model="isAirplaneShow" value=""/>Airplane
+          </label>
+          <label class='p-1'><input class='p-1' name="D" type="checkbox" v-model="isAirportShow" value=""/>Airport
+          </label>
+        </form>
+      </div>
+
+      <div class="r_col h-40  text-center p-2">
+        <h5>Select filter for airport:</h5>
+        <div class='h-30 w-100 p-1 block bd center-block'>
+          <input
+            class="center-block"
+            type="checkbox"
+            data-toggle="switchbutton"
+            data-onlabel="Departure"
+            data-offlabel="Arrival"
+            data-onstyle="success"
+            data-offstyle="info"
+            v-model="arrivalShow"
+          />
+        </div>
+        <div class='h-70 w-100 p-2 block bd text-center'>
+          <label class="p-1"><input class="radio" type="radio" name="isDelayCount" value="0" v-model="isDelayCount">
+            Counts of flight delays</label>
+          <label class="p-1"><input class="radio" type="radio" name="isDelayCount" value="1" v-model="isDelayCount">
+            Length of delayed time</label>
+        </div>
+      </div>
+
+      <div class="r_col h-40 p-2">
+        <h5>Select filter for route:</h5>
+        Departure Airport<select v-model="selectedDepartureAirport" name="deptAirport">
+        <option
+          v-for="item in allairport"
+          :value="item.airport"
+        >
+          {{item.name}}
+        </option>
+      </select>
+        Arrival Airport<select v-model="selectedArrivalAirport" name="deptAirport">
+        <option
+          v-for="item in allairport"
+          :value="item.airport"
+        >
+          {{item.name}}
+        </option>
+      </select>
+        Airplane Company<select v-model="selectedCompany" name="deptAirport">
+        <option
+          v-for="item in airplaneCompany"
+          :value="item.companyName"
+        >
+          {{item.companyName}}
+        </option>
+      </select>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="script.js"></script>
+<script>
+var app1 = {
+  data () {
+    return {
+      currentYearData: 2018,
+      currentTimeData: 0,
+      chartStartTime: 0,
+      chartEndTime: 47,
+      airports: [],
+      taxiout_by_origin: [],
+    };
+  },
+  created () {
+    Promise.all([
+      d3.csv(urls.allairport, (rec) => {
+        if (rec.name !== 'all') {
+          this.airports.push(rec);
+        }
+      }),
+      d3.csv('data/taxiout_by_origin.csv', (record) => {
+        record.DEP_TIME = parseInt(record.DEP_TIME);
+        record.FL_DATE = parseInt(record.FL_DATE);
+        record.TAXI_OUT = parseFloat(record.TAXI_OUT);
+        this.taxiout_by_origin.push(record);
+      }),
+    ]).then(() => {
+      this.barChart(this.airports, this.taxiout_by_origin);
+    });
+  },
+  methods: {
+    addColon (s) {
+      var arr = Array.from(s);
+      return arr.slice(0, 2).join('') + ':' + arr.slice(2).join('');
+    },
+    convertToTime (userInputTime) {
+      var c = userInputTime.toString();
+      if (c.endsWith('.5')) {
+        if (userInputTime < 10) {
+          c = '0' + c.slice(0, 1) + '30';
+        } else {
+          c = c.slice(0, 2) + '30';
+        }
+      } else {
+        if (userInputTime < 10) {
+          c = '0' + c + '00';
+        } else {
+          c = c.slice(0, 2) + '00';
+        }
+      }
+      return c;
+    },
+
+    barChart (airports, taxiout_by_origin) {
+      const airportsDict = {};
+      airports.forEach((item) => {
+        item.value = 0.0;
+        airportsDict[item.airport] = item;
+      });
+      var st = parseInt(this.convertToTime(this.chartStartTime / 2));
+      var et = parseInt(this.convertToTime(this.chartEndTime / 2));
+      taxiout_by_origin.forEach((item) => {
+        if (item.DEP_TIME >= st && item.DEP_TIME <= et) {
+          const taxiOut = parseFloat(item.TAXI_OUT);
+          if (taxiOut) {
+            //+= new change
+            airportsDict[item.ORIGIN].value = taxiOut;
+          }
+        }
+      });
+      const airportArray = Object.values(airportsDict);
+      // const labels = airportArray.map((item) => item.name);
+      const labels = airportArray.map((item) => item.airport);
+      const chartData = airportArray.map((item) => item.value);
+      var myChart = echarts.init(document.getElementById('chart'));
+
+      var option = {
+        title: {
+          text: 'taxi-out(minutes)'
+        },
+        xAxis: {
+          data: labels,
+
+          axisLabel: {
+            interval: 0,
+            rotate: 90,
+          },
+        },
+        yAxis: {},
+        series: [{
+          type: 'bar',
+          data: chartData,
+        }],
+      };
+      myChart.setOption(option);
+    },
+  },
+  computed: {
+    currentYear: {
+      get () {
+        return this.currentYearData;
+      },
+      set (newValue) {
+        this.currentYearData = Number(newValue);
+      },
+    },
+    currentTime: {
+      get () {
+        return this.currentTimeData;
+      },
+      set (newValue) {
+        this.currentTimeData = Number(newValue);
+      },
+    },
+    chartStartTimeShow () {
+      var s = this.convertToTime(this.chartStartTime / 2);
+      return this.addColon(s);
+    },
+    chartEndTimeShow () {
+      var s = this.convertToTime(this.chartEndTime / 2);
+      return this.addColon(s);
+    },
+    currentTimeShow () {
+      var s = this.convertToTime(this.currentTime / 2);
+      return this.addColon(s);
+    },
+  },
+  watch: {
+    currentTimeData () {
+      app2.methods.refreshMap.call(app2this);
+    },
+    currentYearData () {
+      app2.methods.refreshMap.call(app2this);
+    },
+    chartStartTime () {
+      this.barChart(this.airports, this.taxiout_by_origin);
+    },
+    chartEndTime () {
+      this.barChart(this.airports, this.taxiout_by_origin);
+    },
+  },
+};
+let airports;
+let flights;
+let airplaneCompany;
+let allairport;
+var app2 = {
+  data () {
+    return {
+      isLineShow: true,
+      isAirplaneShow: true,
+      isAirportShow: true,
+      arrivalShow: true,
+      isDelayCount: '0',
+      flights: [],
+      airports: [],
+      airplaneCompany: [],
+      allairport: [],
+      selectedDepartureAirport: 'all',
+      selectedArrivalAirport: 'all',
+      selectedCompany: 'AA',
+      currentYearData: 2018,
+      currentTimeData: 0,
+    };
+  },
+  created () {
+    const promises = [
+      d3.csv(urls.airports, typeAirport),
+      d3.csv(urls.flights, typeFlight),
+      d3.csv(urls.comps, typeCompanys),
+      d3.csv(urls.allairport, typeAllairport),
+    ];
+
+    Promise.all(promises).then((values) => {
+      airports = values[0];
+      flights = values[1];
+      airplaneCompany = values[2];
+      allairport = values[3];
+      this.airports = airports;
+      this.flights = flights;
+      this.airplaneCompany = airplaneCompany;
+      this.allairport = allairport;
+      this.refreshMap();
+    });
+  },
+  methods: {
+    refreshMap () {
+      var params = [
+        airports,
+        flights,
+        app1this.currentYearData,
+        app1this.currentTimeData,
+        this.isLineShow,
+        this.isAirplaneShow,
+        this.isAirportShow,
+        this.arrivalShow,
+        this.isDelayCount,
+        airplaneCompany,
+        this.selectedDepartureAirport,
+        this.selectedArrivalAirport,
+        this.selectedCompany,
+        allairport,
+      ];
+      console.log('ZHANG: %c%s >>> ', 'background:#ff9912;color:white;font-size:20px', 'params', params);
+      processData(params);
+    },
+  },
+  computed: {},
+  watch: {
+    isLineShow () {
+      this.refreshMap();
+    },
+    isAirplaneShow () {
+      this.refreshMap();
+    },
+    isAirportShow () {
+      this.refreshMap();
+    },
+    arrivalShow () {
+      this.refreshMap();
+    },
+    isDelayCount () {
+      this.refreshMap();
+    },
+    selectedDepartureAirport () {
+      this.refreshMap();
+    },
+    selectedArrivalAirport () {
+      this.refreshMap();
+    },
+    selectedCompany () {
+      this.refreshMap();
+    },
+  },
+};
+var app1this = Vue.createApp(app1).mount('#app1');
+var app2this = Vue.createApp(app2).mount('#app2');
+//CHECK
+
+
+</script>
+<h6>This chart presents you the sum of the taxi-out time at the corresponding airport.
+  The higher it shows, you might need to wait for your friend in the airport for a longer time</h6>
+</body>
+</html>
