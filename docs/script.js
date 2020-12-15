@@ -1,13 +1,7 @@
 const urls = {
-  // source: https://observablehq.com/@mbostock/u-s-airports-voronoi
-  // source: https://github.com/topojson/us-atlas
   map: "states-albers-10m.json",
-
-  // source: https://gist.github.com/mbostock/7608400
   airports:
     "data/airportdelay.csv",
-
-  // source: https://gist.github.com/mbostock/7608400
   flights:
     "data/top50_1125.csv",
 
@@ -56,12 +50,6 @@ console.assert(tooltip.size() === 1);
 // load and draw base map
 d3.json(urls.map).then(drawMap);
 
-// const promises = [
-//   d3.csv(urls.airports, typeAirport),
-//   d3.csv(urls.flights,  typeFlight)
-// ];
-
-// Promise.all(promises).then(processData);
 
 function processData(values) {
 
@@ -82,10 +70,10 @@ function processData(values) {
 
   flights = flights.filter(flight => flight.FL_DATE == yearData);
    if (hourData%2 == 0){
-    flights = flights.filter(flight => flight.ARR_TIME >= hourData*50 && flight.DEP_TIME <= hourData*50+30);
+    flights = flights.filter(flight => flight.ARR_TIME >= hourData*50 && flight.DEP_TIME <= hourData*50);
   }
   else{
-    flights = flights.filter(flight => flight.ARR_TIME >= hourData*50-20 && flight.DEP_TIME <= hourData*50+10);
+    flights = flights.filter(flight => flight.ARR_TIME >= hourData*50-20 && flight.DEP_TIME <= hourData*50-20);
   }
   // w_drawFlights(allairport, flights);
   // w_drawAirplanes(allairport, flights, hourData)
@@ -223,18 +211,18 @@ function drawMap(map) {
   g.basemap.append("path")
     .datum(land)
     .attr("class", "land")
-    .attr("d", path)
-    .attr("fill", "steelblue");
-
+    .attr("d", path);
   // draw interior borders
   g.basemap.append("path")
     .datum(topojson.mesh(map, map.objects.states, (a, b) => a !== b))
     .attr("class", "border interior")
+    .style('stroke','#202020')
     .attr("d", path);
 
   // draw exterior borders
   g.basemap.append("path")
     .datum(topojson.mesh(map, map.objects.states, (a, b) => a === b))
+    .style('stroke','#202020')
     .attr("class", "border exterior")
     .attr("d", path);
 }
@@ -293,11 +281,11 @@ var size = d3.scaleSqrt()
   .range([4, 40])  // Size in pixel
 
 // Add legend: circles
-var valuesToShow = [Nmin, Nmax/2 + Nmin/2, Nmax]
+var values = [Nmin, Nmax/2 + Nmin/2, Nmax]
 var xCircle = 10
 var xLabel = 40
 var yCircle = 40
-
+valuesToShow = values.sort(function(a,b) { return +size(b) - +size(a) })
 
 svg.selectAll("legend")
   .data(valuesToShow)
@@ -306,8 +294,9 @@ svg.selectAll("legend")
     .attr("cx", xCircle)
     .attr("cy", function(d){ return yCircle - size(d) } )
     .attr("r", function(d){ return size(d) })
-    .style("fill", "none")
-    .attr("stroke", "black")
+    .style("fill", "white")
+    .attr("stroke", "#202020")
+    .attr('stroke-width', '1')
     .attr("class", "re")
 
 // Add legend: segments
@@ -319,7 +308,8 @@ svg.selectAll("legend")
     .attr('x2', function(d){ return xLabel+ 2*size(d) })
     .attr('y1', function(d){ return yCircle - size(d) } )
     .attr('y2', function(d){ return yCircle - size(d) } )
-    .attr('stroke', 'black')
+    .attr('stroke', '#888888')
+    .attr('stroke-width', '2')
     .style('stroke-dasharray', ('2,2'))
     .attr("class", "re")
 
@@ -331,7 +321,8 @@ svg.selectAll("legend")
     .attr('x', function(d){ return xLabel+ 2*size(d) })
     .attr('y', function(d){ return yCircle - size(d) } )
     .text( function(d){ return d } )
-    .style("font-size", 12)
+    .style("font-size", 14)
+    .style('fill','#C0C0C0')
     .attr('alignment-baseline', 'middle')
     .attr("class", "re")
     const geojson = airports.map(function(airport) {
@@ -368,8 +359,8 @@ svg.selectAll("legend")
         if (x1 ==airport.x || x2 == airport.x){
           d3.select(this)
           .attr('class', "Y")
-          .attr("stroke-width", 2)
-          .attr("stroke", "red");
+          .attr("stroke-width", 5)
+          .attr("stroke", "#df861d");
         }else{
           d3.select(this)
           .attr('class', "N");
@@ -378,7 +369,6 @@ svg.selectAll("legend")
 
       d3.select(airport.bubble)
         .classed("highlight", true);
-
 
        tooltip.style("display", null);
        tooltip.style("visibility", "hidden");
@@ -413,89 +403,13 @@ svg.selectAll("legend")
        .each(function(d){
           d3.select(this)
           .attr("stroke-width", 1)
-          .attr("stroke", "gray");
+          .attr("stroke", "white");
       });
 
 
        d3.select("text#tooltip").style("visibility", "hidden");
      });
 }
-
-// function drawPolygons(airports) {
-//   // convert array of airports into geojson format
-//   const geojson = airports.map(function(airport) {
-//     return {
-//       type: "Feature",
-//       properties: airport,
-//       geometry: {
-//         type: "Point",
-//         coordinates: [airport.longitude, airport.latitude]
-//       }
-//     };
-//   });
-
-//   // calculate voronoi polygons
-//   const polygons = d3.geoVoronoi().polygons(geojson);
-//   console.log(polygons);
-
-//   g.voronoi.selectAll("path")
-//     .data(polygons.features)
-//     .enter()
-//     .append("path")
-//     .attr("d", d3.geoPath(projection))
-//     .attr("class", "voronoi")
-//     .on("mouseover", function(d) {
-//       let airport = d.properties.site.properties;
-
-//       d3.select(airport.bubble)
-//         .classed("highlight", true);
-
-//       d3.selectAll(airport.flights)
-//         .classed("highlight", true)
-//         .raise();
-
-//       // make tooltip take up space but keep it invisible
-//       tooltip.style("display", null);
-//       tooltip.style("visibility", "hidden");
-
-//       // set default tooltip positioning
-//       tooltip.attr("text-anchor", "middle");
-//       tooltip.attr("dy", -scales.airports(airport.outgoing) - 4);
-//       tooltip.attr("x", airport.x);
-//       tooltip.attr("y", airport.y);
-
-//       // set the tooltip text
-//       tooltip.text(airport.name);
-
-//       // double check if the anchor needs to be changed
-//       let bbox = tooltip.node().getBBox();
-
-//       if (bbox.x <= 0) {
-//         tooltip.attr("text-anchor", "start");
-//       }
-//       else if (bbox.x + bbox.width >= width) {
-//         tooltip.attr("text-anchor", "end");
-//       }
-
-//       tooltip.style("visibility", "visible");
-//     })
-//     .on("mouseout", function(d) {
-//       let airport = d.properties.site.properties;
-
-//       d3.select(airport.bubble)
-//         .classed("highlight", false);
-
-//       d3.selectAll(airport.flights)
-//         .classed("highlight", false);
-
-//       d3.select("text#tooltip").style("visibility", "hidden");
-//     })
-//     .on("dblclick", function(d) {
-//       // toggle voronoi outline
-//       let toggle = d3.select(this).classed("highlight");
-//       d3.select(this).classed("highlight", !toggle);
-//     });
-// }
 
 
 function drawFlights(airports, flights) {
@@ -514,12 +428,6 @@ function drawFlights(airports, flights) {
     .append("path")
     .attr("d", line)
     .attr("class", "flight")
-    // .each(function(d) {
-    //   console.log(d)
-    //   // adds the path object to our source airport
-    //   // makes it fast to select outgoing paths
-    //   d[0].flights.push(this);
-    // });
 
   // https://github.com/d3/d3-force
   let layout = d3.forceSimulation()
@@ -694,15 +602,13 @@ function w_drawFlights(airports, flights) {
       .attr("y1", AP_ORI.y)
       .attr("y2", AP_DES.y)
       .attr("stroke-width", 1)
-      .attr("stroke", "gray")
+      .attr("stroke", "white")
   }
 
 }
 
 function w_drawAirplanes(airports, flights, hourData){
-  // console.log("test_airports:", airports)
-  // console.log("test_flights:", flights)
-  // console.log("hourData", hourData)
+
   var current_time = parseInt(hourData/2)*100+parseInt(hourData%2)*30
   g.flights.selectAll('text').remove();
   for (let flight of flights){
@@ -716,7 +622,6 @@ function w_drawAirplanes(airports, flights, hourData){
     TOTAL_MIN = time_distance_min(flight.DEP_TIME, flight.ARR_TIME)
     PAST_MIN = time_distance_min(flight.DEP_TIME, current_time)
     RATIO = PAST_MIN/TOTAL_MIN
-    // console.log("TIME", TOTAL_MIN, PAST_MIN, current_time, flight.DEP_TIME, flight.ARR_TIME)
 
     AC_x = AP_ORI.x + (AP_DES.x - AP_ORI.x)*RATIO
     AC_y = AP_ORI.y + (AP_DES.y - AP_ORI.y)*RATIO
@@ -726,7 +631,6 @@ function w_drawAirplanes(airports, flights, hourData){
       .attr("x", AC_x)
       .attr("y", AC_y)
       .style("font-size", "40")
-      // .attr("text-anchor", "middle")
       .attr("dy", "15px")
       .attr("dx", "-15px")
       .text("\u2708")

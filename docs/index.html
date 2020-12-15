@@ -31,11 +31,14 @@
 <div class="container-fluid p-5">
   <h1><b><i>The Sky of US</i></b></h1>
   <h6><i>A Historical flight viewer</i></h6>
-  <h5>Welcome to the sky of the US. This interface exploration is based on the historical data of flights
-    from 2009 to 2018, in which you will be able to locate the most/least delayed airport, your interested airlines,
-    or the real-time airplane location on Nov 22, a day before the Thanksgiving break in each year. You will also see
-    how long it takes for taxi out in the top 50 airports and some other information for your selected time. Enjoy
-    the trip today!</h5>
+  <h6>Group T**m: Tianyuan Zheng, Weijie Chen, Yu Li, Zan Zhang</h6>
+  <br>
+  <h5>WELCOME TO THE SKY OF US! </h5>
+  <h5>This interface exploration is based on the historical data of flights from 2009 to
+    2018, in which you will be able to locate the most/least delayed airport, your interested airlines, or the real-time
+    airplane location on Nov 22, a day before the Thanksgiving break in each year. You will also see how long it takes
+    for taxi-out in the top 50 airports within your selected timeframe and some other information.
+    Enjoy the trip today!</h5></br>
   <div class="row">
     <div class="col-8 pl-5">
       <div class="l_col h-80 d-inline-block">
@@ -51,22 +54,28 @@
       </div>
       <div class="l_col w-100 h-20 d-inline-block">
         <div id="app1">
-          <div class="d-flex justify-content-center my-4">
+          <div id = 'cbg' class="d-flex justify-content-center my-4">
             <h5 class='p-3'>Year: </h5>
             <input type="range" v-model="currentYear" class="custom-range" min="2009" max="2018">
-            <span class="font-weight-bold text-primary ml-2 valueSpan">{{currentYear}}</span>
+            <span class="text-primary ml-2 valueSpan ">{{currentYear}}</span>
             <h5 class='p-3 time'>Time: </h5>
             <input type="range" v-model="currentTime" class="custom-range" min="0" max="47">
-            <span class="font-weight-bold text-primary ml-2 valueSpan">{{currentTimeShow}}</span>
+            <span class="text-primary ml-2 valueSpan">{{currentTimeShow}}</span>
           </div>
           <div>
-            <!--            <canvas ref="canvas"></canvas>-->
+            <br>
+            <br>
+            <h4> Passenger Waiting Time Chart</h4>
+            <h5 style='font-weight: normal'>This chart presents you the average of the taxi-out time at the corresponding airport.
+              The higher it shows, the longer it takes for the wheel-off process and starting a new trip!</h5>
             <div id="chart" style="width: 100%;height:600px;"></div>
             <div>
-              <span class='p-3'>start time: {{chartStartTimeShow}}</span>
+              <span class='p-3'><b>Start time: </b></span>
               <input type="range" v-model="chartStartTime" class="custom-range" min="0" max="47">
-              <span class='p-3'>end time: {{chartEndTimeShow}}</span>
+              <span style='color:orange' class='p-3'> {{chartStartTimeShow}}</span>
+              <span class='p-3'><b>End time: </b></span>
               <input type="range" v-model="chartEndTime" class="custom-range" min="0" max="47">
+              <span style='color:orange' class='p-3'> {{chartEndTimeShow}}</span>
             </div>
           </div>
         </div>
@@ -77,16 +86,16 @@
       <div class="r_col h-20 p-2" id='display'>
         <form action="" method="get">
           <h5>Choose display layers:</h5>
-          <label class='p-1'><input class='p-1' name="D" type="checkbox" v-model="isLineShow" value=""/>Line </label>
-          <label class='p-1'><input class='p-1' name="D" type="checkbox" v-model="isAirplaneShow" value=""/>Airplane
-          </label>
-          <label class='p-1'><input class='p-1' name="D" type="checkbox" v-model="isAirportShow" value=""/>Airport
-          </label>
+          <label class='p-1'><input class='p-1' name="D" type="checkbox" v-model="isLineShow" value=""/> Line </label><br>
+          <label class='p-1'><input class='p-1' name="D" type="checkbox" v-model="isAirplaneShow" value=""/> Airplane
+          </label><br>
+          <label class='p-1'><input class='p-1' name="D" type="checkbox" v-model="isAirportShow" value=""/> Airport
+          </label><br>
         </form>
       </div>
 
       <div class="r_col h-40  text-center p-2">
-        <h5>Select filter for airport:</h5>
+        <h5>Select filter for airports:</h5>
         <div class='h-30 w-100 p-1 block bd center-block'>
           <input
             class="center-block"
@@ -108,7 +117,8 @@
       </div>
 
       <div class="r_col h-40 p-2">
-        <h5>Select filter for route:</h5>
+        <h5>Select filter for routes:</h5>
+        <br>
         Departure Airport<select v-model="selectedDepartureAirport" name="deptAirport">
         <option
           v-for="item in allairport"
@@ -134,16 +144,28 @@
         </option>
       </select>
       </div>
+      <br>
+      <div id ='image'>
+      <img width="400" height="800" src="img/1.png" alt="">
     </div>
   </div>
-</div>
+</div><br>
+  <br>
+  <br>
+  <div style='text-align:center'><b>Reference</b><br>
+    <p style='font-size:16'>
+      https://www.kaggle.com/yuanyuwendymu/airline-delay-and-cancellation-data-2009-2018
+    </p>
+    <p style='font-size:16'>
+      https://bl.ocks.org/sjengle/2e58e83685f6d854aa40c7bc546aeb24</p>
+  </div>
 <script src="script.js"></script>
 <script>
 var app1 = {
   data () {
     return {
       currentYearData: 2018,
-      currentTimeData: 0,
+      currentTimeData: 12,
       chartStartTime: 0,
       chartEndTime: 47,
       airports: [],
@@ -194,6 +216,7 @@ var app1 = {
       const airportsDict = {};
       airports.forEach((item) => {
         item.value = 0.0;
+        item.counter = 0;
         airportsDict[item.airport] = item;
       });
       var st = parseInt(this.convertToTime(this.chartStartTime / 2));
@@ -202,33 +225,49 @@ var app1 = {
         if (item.DEP_TIME >= st && item.DEP_TIME <= et) {
           const taxiOut = parseFloat(item.TAXI_OUT);
           if (taxiOut) {
+            airportsDict[item.ORIGIN].counter++;
             //+= new change
-            airportsDict[item.ORIGIN].value = taxiOut;
+            airportsDict[item.ORIGIN].value += taxiOut;
           }
         }
+      });
+
+      Object.keys(airportsDict).forEach((item) => {
+        var obj = airportsDict[item];
+        obj.chartValue = obj.value / obj.counter;
       });
       const airportArray = Object.values(airportsDict);
       // const labels = airportArray.map((item) => item.name);
       const labels = airportArray.map((item) => item.airport);
-      const chartData = airportArray.map((item) => item.value);
+      const chartData = airportArray.map((item) => item.chartValue);
       var myChart = echarts.init(document.getElementById('chart'));
 
       var option = {
-        title: {
-          text: 'taxi-out(minutes)'
+        textStyle:{
+          color: '#D0D0D0', //text color
+          fontSize:18,
         },
         xAxis: {
           data: labels,
-
           axisLabel: {
             interval: 0,
             rotate: 90,
+            fontSize:15
           },
+
         },
-        yAxis: {},
+        yAxis: {
+          name: 'Taxi-out (minutes)',
+          nameRotate: 90,
+          nameLocation:'middle',
+          nameGap:37,
+          fontSize:16
+        },
         series: [{
           type: 'bar',
           data: chartData,
+          color: '#df861d'
+
         }],
       };
       myChart.setOption(option);
@@ -378,7 +417,5 @@ var app2this = Vue.createApp(app2).mount('#app2');
 
 
 </script>
-<h6>This chart presents you the sum of the taxi-out time at the corresponding airport.
-  The higher it shows, you might need to wait for your friend in the airport for a longer time</h6>
 </body>
 </html>
