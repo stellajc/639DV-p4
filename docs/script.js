@@ -354,7 +354,10 @@ svg.selectAll("legend")
      });
 }
 
-
+function isContinental(state) {
+  const id = parseInt(state.id);
+  return id < 60 && id !== 2 && id !== 15;
+}
 // convert gps coordinates to number and init degree
 function typeAirport(airport) {
   airport.longitude = parseFloat(airport.longitude);
