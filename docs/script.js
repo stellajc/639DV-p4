@@ -233,7 +233,7 @@ var svg = d3.select("svg")
 
 // The scale you use for bubble size
 var size = d3.scaleSqrt()
-  .domain([Nmin, Nmax])  // What's in the data, let's say it is percentage
+  .domain([Nmin, Nmax])  // What's in the data
   .range([4, 40])  // Size in pixel
 
 // Add legend: circles
