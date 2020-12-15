@@ -75,40 +75,9 @@ function processData(values) {
   else{
     flights = flights.filter(flight => flight.ARR_TIME >= hourData*50-20 && flight.DEP_TIME <= hourData*50-20);
   }
-  // w_drawFlights(allairport, flights);
-  // w_drawAirplanes(allairport, flights, hourData)
-
   // convert airports array (pre filter) into map for fast lookup
   let iata = new Map(allairport.map(node => [node.airport, node]));
 
-  // // remove airports out of bounds
-  // let old = airports.length;
-  // airports = airports.filter(airport => airport.x >= 0 && airport.y >= 0);
-  // console.log(" removed: " + (old - airports.length) + " airports out of bounds");
-
-
-  // // remove airports with NA state
-  // old = airports.length;
-  // airports = airports.filter(airport => airport.state !== "NA");
-  // console.log(" removed: " + (old - airports.length) + " airports with NA state");
-
-  // // remove airports without any flights
-  // old = airports.length;
-  // airports = airports.filter(airport => airport.outgoing > 0 && airport.incoming > 0);
-  // console.log(" removed: " + (old - airports.length) + " airports without flights");
-
-  // // sort airports by outgoing degree
-  // airports.sort((a, b) => d3.descending(a.outgoing, b.outgoing));
-
-  // // keep only the top airports
-  // old = airports.length;
-  // airports = airports.slice(0, 50);
-  // console.log(" removed: " + (old - airports.length) + " airports with low outgoing degree");
-
-  // done filtering airports can draw
-//   let selectedtime = 0;
-//   let selectedyear = 2012;
- 
 
   // reset map to only include airports post-filter
   // airplaneCompany
@@ -119,15 +88,9 @@ function processData(values) {
     flights = flights.filter(flight => flight.DEST == selectedArrivalAirport);
   }
 
-  // console.log("flights", flights)
   if(selectedCompany!='all'){
     flights = flights.filter(flight => flight.OP_CARRIER == selectedCompany);
   }
-
-
-//   if (selectedArrivalAirport!=null){
-//   flights = flights.filter(flight => flight.DEP_TIME <= app.d_time*100 && flight.DEP_TIME > (app.d_time-1)*100);
-//   flights = flights.filter(flight => flight.ARR_TIME <= app.a_time*100 && flight.ARR_TIME > (app.a_time-1)*100);
 
   // calculate incoming and outgoing degree based on flights
   // flights are given by airport iata code (not index)
@@ -144,13 +107,8 @@ function processData(values) {
 
   flights = flights.filter(link => iata.has(link.source.airport) && iata.has(link.target.airport));
 
-  // console.log("flights", flights)
   
    airports = airports.filter(airports => airports.time == hourData && airports.year == yearData);
-  //******************************************
-  //insert user selection here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  //please update!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  //important!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   if (arrivalShow == false && isDelayCount == '0'){
       airports.forEach(function(link){
       link.outgoing = link.arrcount;});
@@ -171,7 +129,6 @@ function processData(values) {
   } else{
     g.airports.selectAll("circle.airport").remove();
     drawPoints(airports);
-    // console.log(svg.selectAll("legend").selectAll("text"))
     svg.selectAll("text.re").remove();
     svg.selectAll("circle.re").remove();
     svg.selectAll("line.re").remove();
@@ -179,7 +136,6 @@ function processData(values) {
     // svg.selectAll("legend line").remove();
 
   }
-  // console.log(flights);
   // done filtering flights can draw
   if (isLineShow == true) {
     w_drawFlights(allairport, flights);
@@ -415,8 +371,6 @@ svg.selectAll("legend")
 function drawFlights(airports, flights) {
   // break each flight between airports into multiple segments
   let bundle = generateSegments(airports, flights);
-  // console.log(bundle);
-  // https://github.com/d3/d3-shape#curveBundle
   let line = d3.line()
     .curve(d3.curveBundle)
     .x(airport => airport.x)
@@ -429,7 +383,6 @@ function drawFlights(airports, flights) {
     .attr("d", line)
     .attr("class", "flight")
 
-  // https://github.com/d3/d3-force
   let layout = d3.forceSimulation()
     // settle at a layout faster
     .alphaDecay(0.1)
