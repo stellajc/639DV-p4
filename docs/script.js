@@ -90,16 +90,10 @@ function processData(values) {
     flights = flights.filter(flight => flight.OP_CARRIER == selectedCompany);
   }
 
-  // calculate incoming and outgoing degree based on flights
-  // flights are given by airport iata code (not index)
   flights.forEach(function(link) {
     link.source = iata.get(link.ORIGIN);
     link.target = iata.get(link.DEST);
   });
-
-
-
-  // filter out flights that are not between airports we have leftover
 
   flights = flights.filter(link => iata.has(link.source.airport) && iata.has(link.target.airport));
 
@@ -361,14 +355,6 @@ svg.selectAll("legend")
 }
 
 
-// determines which states belong to the continental united states
-// https://gist.github.com/mbostock/4090846#file-us-state-names-tsv
-function isContinental(state) {
-  const id = parseInt(state.id);
-  return id < 60 && id !== 2 && id !== 15;
-}
-
-// see airports.csv
 // convert gps coordinates to number and init degree
 function typeAirport(airport) {
   airport.longitude = parseFloat(airport.longitude);
@@ -409,16 +395,6 @@ function typeAllairport(allairport) {
   allairport.y = coords[1];
   return allairport;
 }
-
-// calculates the distance between two nodes
-// sqrt( (x2 - x1)^2 + (y2 - y1)^2 )
-function distance(source, target) {
-  const dx2 = Math.pow(target.x - source.x, 2);
-  const dy2 = Math.pow(target.y - source.y, 2);
-
-  return Math.sqrt(dx2 + dy2);
-}
-
 
 function w_drawFlights(airports, flights) {
   g.flights.selectAll('line').remove();
