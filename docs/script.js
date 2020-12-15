@@ -4,9 +4,7 @@ const urls = {
     "data/airportdelay.csv",
   flights:
     "data/top50_1125.csv",
-
   comps: 'data/comp.csv',
-
   allairport: 'data/airport.csv'
 };
 
@@ -97,8 +95,6 @@ function processData(values) {
   flights.forEach(function(link) {
     link.source = iata.get(link.ORIGIN);
     link.target = iata.get(link.DEST);
-    // link.source.outgoing += link.count;
-    // link.target.incoming += link.count;
   });
 
 
@@ -132,9 +128,6 @@ function processData(values) {
     svg.selectAll("text.re").remove();
     svg.selectAll("circle.re").remove();
     svg.selectAll("line.re").remove();
-    // svg.selectAll("legend").remove();
-    // svg.selectAll("legend line").remove();
-
   }
   // done filtering flights can draw
   if (isLineShow == true) {
@@ -368,117 +361,6 @@ svg.selectAll("legend")
 }
 
 
-function drawFlights(airports, flights) {
-  // break each flight between airports into multiple segments
-  let bundle = generateSegments(airports, flights);
-  let line = d3.line()
-    .curve(d3.curveBundle)
-    .x(airport => airport.x)
-    .y(airport => airport.y);
-
-  let links = g.flights.selectAll("path.flight")
-    .data(bundle.paths)
-    .enter()
-    .append("path")
-    .attr("d", line)
-    .attr("class", "flight")
-
-  let layout = d3.forceSimulation()
-    // settle at a layout faster
-    .alphaDecay(0.1)
-    // nearby nodes attract each other
-    .force("charge", d3.forceManyBody()
-      .strength(10)
-      .distanceMax(scales.airports.range()[1] * 2)
-    )
-    // edges want to be as short as possible
-    // prevents too much stretching
-    .force("link", d3.forceLink()
-      .strength(0.7)
-      .distance(0)
-    )
-    .on("tick", function(d) {
-      links.attr("d", line);
-    })
-    .on("end", function(d) {
-      console.log("layout complete");
-    });
-
-  layout.nodes(bundle.nodes).force("link").links(bundle.links);
-}
-
-
-// Turns a single edge into several segments that can
-// be used for simple edge bundling.
-function generateSegments(nodes, links) {
-  // generate separate graph for edge bundling
-  // nodes: all nodes including control nodes
-  // links: all individual segments (source to target)
-  // paths: all segments combined into single path for drawing
-  let bundle = {nodes: [], links: [], paths: []};
-
-  // make existing nodes fixed
-  bundle.nodes = nodes.map(function(d, i) {
-    d.fx = d.x;
-    d.fy = d.y;
-    return d;
-  });
-
-  links.forEach(function(d, i) {
-    // calculate the distance between the source and target
-    let length = distance(d.source, d.target);
-
-    // calculate total number of inner nodes for this link
-    let total = Math.round(scales.segments(length));
-
-    // create scales from source to target
-    let xscale = d3.scaleLinear()
-      .domain([0, total + 1]) // source, inner nodes, target
-      .range([d.source.x, d.target.x]);
-
-    let yscale = d3.scaleLinear()
-      .domain([0, total + 1])
-      .range([d.source.y, d.target.y]);
-
-    // initialize source node
-    let source = d.source;
-    let target = null;
-
-    // add all points to local path
-    let local = [source];
-
-    for (let j = 1; j <= total; j++) {
-      // calculate target node
-      target = {
-        x: xscale(j),
-        y: yscale(j)
-      };
-
-      local.push(target);
-      bundle.nodes.push(target);
-
-      bundle.links.push({
-        source: source,
-        target: target
-      });
-
-      source = target;
-    }
-
-    local.push(d.target);
-
-    // add last link to target node
-    bundle.links.push({
-      source: target,
-      target: d.target
-    });
-
-    bundle.paths.push(local);
-  });
-
-  return bundle;
-}
-
 // determines which states belong to the continental united states
 // https://gist.github.com/mbostock/4090846#file-us-state-names-tsv
 function isContinental(state) {
@@ -539,17 +421,13 @@ function distance(source, target) {
 
 
 function w_drawFlights(airports, flights) {
-  // console.log("airports:", airports)
   g.flights.selectAll('line').remove();
   
 
   for (let flight of flights){
     AP_ORI = airports.find(o => o.airport === flight.ORIGIN)
-    // console.log("flight.ORIGIN", flight.ORIGIN)
     AP_DES = airports.find(o => o.airport === flight.DEST)
-    // console.log("flight.DEST", flight.DEST)
     g.flights.append("line")
-      // .data(flights)
       .attr("x1", AP_ORI.x)
       .attr("x2", AP_DES.x)
       .attr("y1", AP_ORI.y)
@@ -580,7 +458,6 @@ function w_drawAirplanes(airports, flights, hourData){
     AC_y = AP_ORI.y + (AP_DES.y - AP_ORI.y)*RATIO
 
     g.flights.append("text")
-      // .data(flights)
       .attr("x", AC_x)
       .attr("y", AC_y)
       .style("font-size", "40")
